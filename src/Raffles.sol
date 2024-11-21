@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 import {VRFCoordinatorV2Interface} from "chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 
 import {VRFConsumerBaseV2Plus} from "chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import {AutomationCompatibleInterface} from "chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 import {VRFV2PlusClient} from "chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
 // Layout of the contract file:
@@ -31,6 +32,7 @@ error Raffle_NotEnoughEthSent();
 error Raffle_SendMoreToEnterRaffle();
 error Raffle_TransferFailed();
 error Raffle_RaffleNotOpen();
+error raffle_notUpdated(uint256 hehe , uint256 h2h, uint256 raFFLE);
 
 // view & pure functions
 /**
@@ -41,7 +43,7 @@ error Raffle_RaffleNotOpen();
  */
 
 
-contract Raffles is VRFConsumerBaseV2Plus{
+contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
     event PickedWinner(address player);
     event IndexedMembers(address indexed player);
     address payable[] private s_addresses;
@@ -88,8 +90,35 @@ contract Raffles is VRFConsumerBaseV2Plus{
     emit IndexedMembers(msg.sender);
 
     }
-    function pickWinner() external {
-        if(block.timestamp-s_lasttimeStamp<i_interval) revert();
+    /**
+ * @dev This is the function that the Chainlink Keeper nodes call
+ * they look for `upkeepNeeded` to return True.
+ * the following should be true for this to return true:
+ * 1. The time interval has passed between raffle runs.
+ * 2. The lottery is open.
+ * 3. The contract has ETH.
+ * 4. There are players registered.
+ * 5. Implicity, your subscription is funded with LINK.
+ */
+    function checkUpkeep(bytes memory /*data */) public view returns (bool upkeepNeeded , bytes memory /* performData */) {
+        bool isOpen = Raffle_State.OPEN== s_raffleState;
+        bool timepassed = (block.timestamp-s_lasttimeStamp)>=i_interval;
+        bool hasPlayers = s_players.length>0;
+        bool hasETH= address(this).balance>0;
+        upkeepNeeded= (isOpen && timepassed && hasETH && hasPlayers);
+        return(upkeepNeeded, "0x0");
+
+
+    }
+    function  performUpkeep(bytes calldata /* perform data */ ) external override {
+        (bool upkeepNeeeded ,)= checkUpkeep("");
+        if(!upkeepNeeeded){
+            revert raffle_notUpdated(address(this).balance,
+            s_players.length,
+            uint256(s_raffleState));
+        }
+        
+            s_raffleState=Raffle_State.CALCULATING;
             VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
                 keyHash: i_keyHash,
                 subId: i_subscriptionId,
@@ -101,7 +130,6 @@ contract Raffles is VRFConsumerBaseV2Plus{
                     VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
                 )
             });
-            s_raffleState=Raffle_State.CALCULATING;
             uint256 requestId= s_vrfCoordinator.requestRandomWords(request);
     }
     function fulfillRandomWords(uint256 requestID, uint256[] calldata randomWords) internal override {
