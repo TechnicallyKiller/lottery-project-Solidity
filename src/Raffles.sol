@@ -31,6 +31,7 @@ error Raffle_NotEnoughEthSent();
 error Raffle_SendMoreToEnterRaffle();
 error Raffle_TransferFailed();
 error Raffle_RaffleNotOpen();
+
 // view & pure functions
 /**
  * @title A sample Raffle Contract by DivK
@@ -41,6 +42,7 @@ error Raffle_RaffleNotOpen();
 
 
 contract Raffles is VRFConsumerBaseV2Plus{
+    event PickedWinner(address player);
     event IndexedMembers(address indexed player);
     address payable[] private s_addresses;
     // Chainlink VRF related variables
@@ -107,13 +109,18 @@ contract Raffles is VRFConsumerBaseV2Plus{
         address payable winner = s_players[indexOfWinner];
         s_recentWinner=winner;
         s_raffleState=Raffle_State.OPEN;
+        s_players= new address payable[](0);
+        s_lasttimeStamp=block.timestamp;
+
+
+
         (bool success,)=s_recentWinner.call{value:address(this).balance}("");
         if(!success){
             revert Raffle_TransferFailed();
 
         }
-        s_players= new address payable[](0);
-        s_lasttimeStamp=block.timestamp;
+        
+        emit PickedWinner(s_recentWinner);
         
 
 
