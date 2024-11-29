@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
 import {VRFCoordinatorV2Interface} from "chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
@@ -28,11 +28,7 @@ import {VRFV2PlusClient} from "chainlink/contracts/src/v0.8/vrf/dev/libraries/VR
 // public
 // internal
 // private
-error Raffle_NotEnoughEthSent();
-error Raffle_SendMoreToEnterRaffle();
-error Raffle_TransferFailed();
-error Raffle_RaffleNotOpen();
-error raffle_notUpdated(uint256 hehe , uint256 h2h, uint256 raFFLE);
+
 
 // view & pure functions
 /**
@@ -44,6 +40,11 @@ error raffle_notUpdated(uint256 hehe , uint256 h2h, uint256 raFFLE);
 
 
 contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
+    error Raffle_NotEnoughEthSent();
+    error Raffle_SendMoreToEnterRaffle();
+    error Raffle_TransferFailed();
+    error Raffle_RaffleNotOpen();
+    error raffle_notUpdated(uint256 hehe , uint256 h2h, uint256 raFFLE);
     event PickedWinner(address player);
     event IndexedMembers(address indexed player);
     address payable[] private s_addresses;
@@ -77,6 +78,7 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         i_keyHash= gasLane;
         i_callbackGasLimit= callbackGasLimit;
         s_raffleState=Raffle_State.OPEN;
+        i_subscriptionId=subscriptionId;
         
 
         
@@ -158,6 +160,12 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
      */
     function getEntrancefee() external view returns(uint256){
         return i_entrancefee;
+    }
+    function getState() external view returns(Raffle_State){
+        return s_raffleState;
+    }
+    function getPlayer(uint256 indexofPlayer) external view returns(address){
+        return s_players[indexofPlayer];
     }
     
 
