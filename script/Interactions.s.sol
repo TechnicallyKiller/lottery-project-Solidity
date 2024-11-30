@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.10;
 import {Script} from "forge-std/Script.sol";
-import {HelperConfig} from "./HelperConfig1.s.sol";
+import {HelperConfig,CodeConstants} from "./HelperConfig1.s.sol";
+import {LinkToken} from "../test/mocks/LinkToken.sol";
+
+import {console} from "forge-std/console.sol";
+import {VRFCoordinatorV2_5Mock} from "../lib/chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+
 
 contract CreateSubscription is Script {
     function CreateSubscriptionUsingConfig() public returns (uint256 subid , address vrfCoordinator) {
-        HelperConfig helperconfig = new HelperConfig();
-        address vrfCoordinator1 = helperconfig.getConfig().vrfCoordinator;
+        HelperConfig helperConfig = new HelperConfig();
+        address vrfCoordinator1 = helperConfig.getConfig().vrfCoordinator;
         (uint256 subId,)=createSubscription(vrfCoordinator1);
         return (subId,vrfCoordinator1);
 
@@ -21,5 +26,39 @@ contract CreateSubscription is Script {
     }
     function run() public {
         CreateSubscriptionUsingConfig();
+    }
+}
+
+contract FundSubscriptionundSubscription is Script , CodeConstants {
+    uint256 public constant FUND_AMOUNT = 3 ether;
+    function run() public {
+
+    }
+    
+    function fundSubscriptionusingConfig() public {
+         HelperConfig helperConfig = new HelperConfig();
+        address vrfCoordinator1 = helperConfig.getConfig().vrfCoordinator;
+        uint256 subscriptionID = helperConfig.getConfig().subscriptionId;
+        address linkToken = helperConfig.getConfig().link;
+        fundSubscription(vrfCoordinator1,subscriptionID,linkToken);
+
+
+
+
+    }
+    function fundSubscription(address vrfCooordinator, uint256 subId, address linktoken) public {
+
+    //  VRFCoordinatorV2_5Mock(vrfCooordinator).fundSubscription(subId,FUND_AMOUNT);
+        console.log("chain id :", block.chainid);
+        if(block.chainid==LOCAL_CHAIN_ID){
+            vm.startBroadcast();
+            VRFCoordinatorV2_5Mock(vrfCooordinator).fundSubscription(subId,FUND_AMOUNT);
+            vm.stopBroadcast();
+        }
+        else{
+            vm.startBroadcast();
+            LinkToken(linktoken).transferAndCall(vrfCooordinator,FUND_AMOUNT, abi.encode(subId));
+            vm.stopBroadcast();
+        }
     }
 }

@@ -17,7 +17,7 @@ contract RafflesTest is Test {
     uint32 callbackGasLimit;
     uint256 subscriptionId;
 
-    event EnteredRaffle(address indexed player);
+    event IndexedMembers(address indexed player);
 
     address public PLAYER = makeAddr("player");
     uint256 public constant STARTING_PLAYER_BALANCE= 10 ether;
@@ -68,7 +68,7 @@ contract RafflesTest is Test {
     // Act / Assert
     // Expect the 'EnteredRaffle' event to be emitted with the PLAYER address as the indexed parameter
     vm.expectEmit(true, false, false, false, address(raffle)); // Expect the event from the raffle contract
-    emit EnteredRaffle(PLAYER); // Emitting the event manually for comparison
+    emit IndexedMembers(PLAYER); // Emitting the event manually for comparison
     raffle.enterRaffle{value: entranceFee}(); // Call the function to enter the raffle
 }
 
