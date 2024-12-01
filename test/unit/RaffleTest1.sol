@@ -86,5 +86,84 @@ function testDontAllowPlayersToEnterWhileRaffleIsCalculating() public {
     raffle.enterRaffle{value: entranceFee}();
 
 }
+function testCheckUpkeepReturnsFalseIfItHasNoBalance() public {
+        // Arrange
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        // Act
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
+
+        // Assert
+        assert(!upkeepNeeded);
+ }
+ function testCheckUpkeepReturnsFalseIfRaffleIsntOpen() public {
+        // Arrange
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        raffle.performUpkeep("");
+        Raffle.Raffle_State raffleState = raffle.getState();
+
+        // Act
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
+
+        // Assert
+        assert(raffleState == Raffle.Raffle_State.CALCULATING);
+        assert(upkeepNeeded == false);
+ }
+ function testCheckUpkeepReturnsTrueWhenParamsAreGood() public {
+     vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        Raffle.Raffle_State raffleState= Raffle.Raffle_State.OPEN;
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
+        assert(upkeepNeeded== true); 
+
+ }
+   function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed() public {
+        // Arrange
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+
+        // Act
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
+
+        // Assert
+        assert(!upkeepNeeded);
+    }
+    function testPerformUpkeepCanOnlyRunIfCheckUpkeepIsTrue() public {
+    // Arrange
+    vm.prank(PLAYER);
+    raffle.enterRaffle{value: entranceFee}();
+    vm.warp(block.timestamp + interval + 1);
+    vm.roll(block.number + 1);
+
+    // Act / Assert
+    // It doesnt revert
+    raffle.performUpkeep("");
+
+}
+function testPerformUpkeepRevertsIfCheckUpkeepIsFalse() public {
+    // Arrange
+    uint256 currentBalance = 0;
+    uint256 numPlayers = 0;
+    Raffle.RaffleState rState = raffle.getRaffleState();
+    // Act / Assert
+    vm.expectRevert(
+        abi.encodeWithSelector(
+            Raffle.Raffle__UpkeepNotNeeded.selector,
+            currentBalance,
+            numPlayers,
+            rState
+        )
+    );
+    raffle.performUpkeep("");
+
+}
+
+
 
     }
